@@ -1,0 +1,29 @@
+CREATE OR REPLACE TABLE `de_project.data_for_analysis` AS (
+SELECT pd.property_key,pd.contractDate,pd.price,prod.area,
+  prod.min_floor,prod.max_floor,prod.avg_floor,prod.propertyType,prod.district,prod.typeOfArea,prod.marketSegment,prod.note_tenure,
+  cd.CPI,vd.Available, vd.Vacant, dd.Deposits_3_years,dd.Deposits_12_Months,dd.Deposits_6_months,dd.Savings_Deposits,
+  ld.lat, ld.lng, ld.num_schools_1km avg_num_shool_1km , ld.num_supermarkets_500m avg_num_supermarkets_500m,ld.num_mrt_stations_500m avg_num_mrt_stations_500m,table_1.index
+FROM `de_project.price_dim` pd
+JOIN  
+( SELECT * ,
+    CASE 
+      WHEN typeOfArea = 'Land' then 'Whole Island'
+      ELSE marketSegment
+    END marketSegment_2
+  FROM `de_project.properties_dim`) prod ON pd.property_key = prod.property_key AND pd.contractDate = prod.contractDate
+JOIN `de_project.datetime_dim` as dt ON pd.contractDate = dt.contractDate
+JOIN `de_project.cpi_dim`  cd ON dt.year = cd.year and dt.month = cd.month
+JOIN `de_project.vacant_dim` vd ON dt.quarter = vd.quarter
+JOIN `de_project.deposits_dim` dd ON dt.year = dd.year and dt.month = dd.month
+JOIN `de_project.location_dim`ld ON prod.district = ld.district
+JOIN (
+  SELECT *, 
+  CASE WHEN typeOfArea = 'Non-Landed' then 'Strata'
+  ELSE typeOfArea
+  END typeOfArea_2
+FROM `de_project.rentIndex_dim`
+) table_1
+ON dt.quarter = table_1.quarter
+AND prod.typeOfArea = table_1.typeOfArea_2
+AND prod.marketSegment_2 = table_1.marketSegment
+)
